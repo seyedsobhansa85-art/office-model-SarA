@@ -44,7 +44,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
     <button id="s-mat">متریال واقعی</button>
     <button id="t-plan" aria-pressed="false">پلان روی کف</button>
     <button id="t-cut" aria-pressed="false">دیوار کوتاه</button>
-    <button id="t-rib" aria-pressed="true">روبان‌های سقف</button>
+    <button id="t-rib" aria-pressed="false">روبان‌های سقف</button>
   </div>
   <div id="note">با یک انگشت بچرخون، با دو انگشت زوم و جابه‌جا کن. روبان‌ها شیشه‌ی قرمز با نور خطی روی لبه‌شون هستن.</div>
 </div>
@@ -163,7 +163,7 @@ const gb=pts=>{glass(pts);glass(pts.map(([x,y])=>[M(x),y]));};
 gb([[905,593],[945,615],[975,650]]);gb([[936,500],[918,545],[905,588]]);
 
 // ceiling ribbons (red glass + linear light along one edge)
-const ribbons=new THREE.Group();scene.add(ribbons);
+const ribbons=new THREE.Group();scene.add(ribbons);ribbons.visible=false;
 const mRib=new THREE.MeshPhysicalMaterial({color:0xc1121f,transparent:true,opacity:.62,roughness:.15,side:THREE.DoubleSide,depthWrite:false,emissive:0x5a0008,emissiveIntensity:.35});
 const mLed=new THREE.MeshBasicMaterial({color:0xfff1d6});
 function ribbon(pts,{w=.42,y=2.72,amp=.16,twist=1.1,phase=0}={}){
