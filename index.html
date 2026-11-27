@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ماکت دفتر معماری</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn.woff2) format("woff2");font-weight:100 900;font-display:swap}
 /* VOICE: calm studio model table
    IDEA: a white architectural massing model on a board
    PICTURE: the 3D model fills the screen
@@ -28,7 +27,7 @@ button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var
 button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #note{font-size:12px;opacity:.6}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -49,7 +48,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 </div>
 <script type="module">
 import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {OrbitControls} from './vendor/OrbitControls.js';
 {
 const S=0.02,CX=1128,CY=750,H=3.0;
 const P=(x,y)=>new THREE.Vector2((x-CX)*S,-(y-CY)*S); // shape coords (x, -z)
