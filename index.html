@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ماکت دفتر معماری</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm studio model table
+   IDEA: a white architectural massing model on a board
+   PICTURE: the 3D model fills the screen
+   COLOUR and TYPE: warm paper white, ink #1b2a3a, red-glass accent #c1121f; Vazirmatn
+   LAYOUT: full-screen canvas, compact control bar at the bottom */
+:root{color-scheme:light dark;--bg:light-dark(#e9e5de,#1a1c1f);--ink:light-dark(#1b2a3a,#ece8e1);--panel:light-dark(rgba(255,255,255,.86),rgba(30,32,36,.86));--line:light-dark(#d4cec4,#3a3d42);--acc:#c1121f}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 Vazirmatn,Tahoma,sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+header{position:fixed;top:12px;inset-inline:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+h1{margin:0;font-size:20px;font-weight:700;line-height:1.2}
+header p{margin:2px 0 0;font-size:13px;opacity:.7}
+.bar{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));inset-inline:12px;margin-inline:auto;max-width:760px;background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;padding:10px;display:grid;gap:8px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row span{font-size:13px;opacity:.7;align-self:center;margin-inline-end:4px;min-width:3.5em}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:10px;min-height:40px;padding:0 12px;cursor:pointer}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#note{font-size:12px;opacity:.6}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<header><div><h1>ماکت دفتر معماری</h1><p>سازه از روی پلان · ابعاد تخمینی: حدود ۲۷٫۵ × ۲۲ متر، ارتفاع ۳ متر</p></div></header>
+<div class="bar">
+  <div class="row"><span>نما</span>
+    <button id="v-iso" aria-pressed="true">ایزومتریک</button>
+    <button id="v-top">از بالا</button>
+    <button id="v-eye">داخل فضا</button>
+  </div>
+  <div class="row"><span>سبک</span>
+    <button id="s-white" aria-pressed="true">ماکت سفید</button>
+    <button id="s-mat">متریال واقعی</button>
+    <button id="t-plan" aria-pressed="false">پلان روی کف</button>
+    <button id="t-cut" aria-pressed="false">دیوار کوتاه</button>
+    <button id="t-rib" aria-pressed="true">روبان‌های سقف</button>
+  </div>
+  <div id="note">با یک انگشت بچرخون، با دو انگشت زوم و جابه‌جا کن. روبان‌ها شیشه‌ی قرمز با نور خطی روی لبه‌شون هستن.</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+{
+const S=0.02,CX=1128,CY=750,H=3.0;
+const P=(x,y)=>new THREE.Vector2((x-CX)*S,-(y-CY)*S); // shape coords (x, -z)
+const M=x=>2256-x;
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,0.1,400);
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.maxPolarAngle=Math.PI*0.495;controls.minDistance=2;controls.maxDistance=90;
+
+scene.add(new THREE.HemisphereLight(0xffffff,0xb8b0a4,1.1));
+const sun=new THREE.DirectionalLight(0xfff4e6,2.2);
+sun.position.set(-14,26,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:1,far:80});sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.02;
+scene.add(sun);
+
+// materials
+const mats={
+  white:{wall:0xf6f4f0,col:0xf6f4f0,floor:0xefece6,board:0xc9b89a,glass:0xdfeef2,bg:0xe9e5de},
+  real:{wall:0xc9c2b7,col:0x8f8a83,floor:0xb5ada1,board:0x6e665c,glass:0x9fc3cc,bg:0xd9d4cc}
+};
+const mWall=new THREE.MeshStandardMaterial({roughness:.85});
+const mCol=new THREE.MeshStandardMaterial({roughness:.8});
+const mFloor=new THREE.MeshStandardMaterial({roughness:.9});
+const mBoard=new THREE.MeshStandardMaterial({roughness:1});
+const mGlass=new THREE.MeshPhysicalMaterial({transparent:true,opacity:.28,roughness:.05,metalness:0,side:THREE.DoubleSide,depthWrite:false});
+const mFrame=new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.5});
+
+// helpers
+function sample(pts,curved){
+  const v=pts.map(p=>P(p[0],p[1]));
+  if(!curved||v.length<3) return v;
+  const c=new THREE.SplineCurve(v);return c.getPoints(Math.max(16,v.length*10));
+}
+function band(pts,t){ // offset polyline into closed shape
+  const L=[],R=[];
+  for(let i=0;i<pts.length;i++){
+    const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];
+    const d=new THREE.Vector2().subVectors(b,a).normalize();const n=new THREE.Vector2(-d.y,d.x).multiplyScalar(t/2);
+    L.push(pts[i].clone().add(n));R.push(pts[i].clone().sub(n));
+  }
+  return new THREE.Shape([...L,...R.reverse()]);
+}
+function extrude(shape,h,mat,y0=0){
+  const g=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false,curveSegments:24});
+  g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,mat);m.position.y=y0;m.castShadow=m.receiveShadow=true;return m;
+}
+const walls=new THREE.Group();scene.add(walls);
+function wall(pts,tpx,curved=false,mat=mWall){walls.add(extrude(band(sample(pts,curved),tpx*S),H,mat));}
+function glass(pts,curved=true){
+  const s=sample(pts,curved);const g=extrude(band(s,0.03),H,mGlass);g.castShadow=false;walls.add(g);
+  // frame top/bottom
+  walls.add(extrude(band(s,0.06),0.05,mFrame));walls.add(extrude(band(s,0.06),0.05,mFrame,H-0.05));
+}
+
+// floor slab from outline
+const arc=new THREE.QuadraticBezierCurve(P(470,235),P(1128,128),P(1790,235)).getPoints(48);
+const outline=[...arc,P(1790,830),P(1345,830),P(1345,1275),P(910,1275),P(910,830),P(470,830)];
+const floorShape=new THREE.Shape(outline);
+const floorGeo=new THREE.ShapeGeometry(floorShape,32);floorGeo.rotateX(-Math.PI/2);
+{ // UVs mapped to the plan image crop (420..1840, 160..1320)
+  const pos=floorGeo.attributes.position,uv=floorGeo.attributes.uv;
+  for(let i=0;i<pos.count;i++){const px=pos.getX(i)/S+CX,py=pos.getZ(i)/S+CY;uv.setXY(i,(px-420)/1420,1-(py-160)/1160);}
+}
+const floor=new THREE.Mesh(floorGeo,mFloor);floor.position.y=0.002;floor.receiveShadow=true;scene.add(floor);
+const slab=extrude(new THREE.Shape(outline),0.25,mFloor,-0.25);scene.add(slab);
+const board=new THREE.Mesh(new THREE.BoxGeometry(36,0.4,30),mBoard);board.position.set(0,-0.45,0.6);board.receiveShadow=true;scene.add(board);
+
+// facade glass with mullions
+{const s=arc;walls.add(Object.assign(extrude(band(s,0.04),H,mGlass),{castShadow:false}));
+ walls.add(extrude(band(s,0.1),0.08,mFrame));walls.add(extrude(band(s,0.1),0.1,mFrame,H-0.1));
+ const c=new THREE.QuadraticBezierCurve(P(470,235),P(1128,128),P(1790,235));
+ for(let i=1;i<14;i++){const p=c.getPoint(i/14);const m=new THREE.Mesh(new THREE.BoxGeometry(.06,H,.06),mFrame);m.position.set(p.x,H/2,-p.y);walls.add(m);}}
+
+// exterior walls
+const E=14;
+wall([[470,235],[470,830]],E);wall([[463,830],[917,830]],E);
+wall([[910,830],[910,895]],E);wall([[910,975],[910,1282]],E);
+wall([[903,1275],[1352,1275]],E);
+wall([[1345,1282],[1345,965]],E);wall([[1345,885],[1345,830]],E);
+wall([[1338,830],[1797,830]],E);wall([[1790,830],[1790,235]],E);
+wall([[910,170],[910,290]],10);wall([[1347,170],[1347,290]],10);
+
+// columns
+const cols=[[445,270,500,345],[885,270,940,345],[1320,270,1375,345],[1760,270,1815,345],[440,765,500,880],[885,795,930,860],[1325,795,1370,860],[1755,765,1815,880],[885,1230,930,1305],[1325,1230,1370,1305]];
+for(const [x1,y1,x2,y2] of cols){const w=(x2-x1)*S,d=(y2-y1)*S;const m=new THREE.Mesh(new THREE.BoxGeometry(w,H+0.02,d),mCol);
+  m.position.set(((x1+x2)/2-CX)*S,H/2,((y1+y2)/2-CY)*S);m.castShadow=m.receiveShadow=true;walls.add(m);}
+
+// curved interior walls (and mirrors)
+const both=(pts,t)=>{wall(pts,t,true);wall(pts.map(([x,y])=>[M(x),y]),t,true);};
+both([[930,300],[916,370],[920,440],[945,485],[990,505]],9);
+both([[955,478],[988,442],[1020,412]],7);
+wall([[1000,558],[1040,500],[1128,463],[1216,500],[1256,558]],9,true);
+wall([[975,650],[982,720],[1015,782],[1085,835]],9,true);
+wall([[1281,650],[1268,740],[1228,815],[1185,860]],9,true);
+wall([[1185,860],[1222,895],[1243,960],[1245,1035]],9,true);
+both([[476,598],[560,598],[700,580],[820,583],[905,593]],10);
+wall([[898,685],[912,740],[928,795]],9,true);
+// WC blocks
+both([[478,475],[726,475]],8);both([[722,475],[722,592]],8);both([[570,475],[570,598]],8);
+wall([[1356,682],[1539,682]],8);wall([[1535,682],[1535,830]],8);wall([[1360,682],[1345,740],[1338,800]],8,true);
+wall([[930,1175],[1000,1164],[1062,1172]],8,true);wall([[1058,1172],[1058,1270]],8);
+wall([[930,985],[1000,1060],[1060,1160]],6,true);
+// glass partitions / doors
+const gb=pts=>{glass(pts);glass(pts.map(([x,y])=>[M(x),y]));};
+gb([[905,593],[945,615],[975,650]]);gb([[936,500],[918,545],[905,588]]);
+
+// ceiling ribbons (red glass + linear light along one edge)
+const ribbons=new THREE.Group();scene.add(ribbons);
+const mRib=new THREE.MeshPhysicalMaterial({color:0xc1121f,transparent:true,opacity:.62,roughness:.15,side:THREE.DoubleSide,depthWrite:false,emissive:0x5a0008,emissiveIntensity:.35});
+const mLed=new THREE.MeshBasicMaterial({color:0xfff1d6});
+function ribbon(pts,{w=.42,y=2.72,amp=.16,twist=1.1,phase=0}={}){
+  const v=pts.map(([x,py],i)=>new THREE.Vector3((x-CX)*S,0,(py-CY)*S));
+  const c=new THREE.CatmullRomCurve3(v,false,'centripetal');const N=Math.max(80,pts.length*22);
+  const pos=[],idx=[],edge=[];
+  for(let i=0;i<=N;i++){
+    const t=i/N,p=c.getPoint(t),T=c.getTangent(t);
+    p.y=y+amp*Math.sin(t*Math.PI*6+phase);
+    const side=new THREE.Vector3(-T.z,0,T.x).normalize();
+    const a=Math.PI/2*0.55+twist*Math.sin(t*Math.PI*5+phase); // tilt between hanging fin and flat band
+    const W=side.multiplyScalar(Math.cos(a)).add(new THREE.Vector3(0,-Math.sin(a),0)).multiplyScalar(w/2);
+    const A=p.clone().add(W),B=p.clone().sub(W);
+    if(A.y>H-0.03){const d=A.y-(H-0.03);A.y-=d;B.y-=d;}
+    pos.push(A.x,A.y,A.z,B.x,B.y,B.z);edge.push(B.clone());
+    if(i<N){const k=i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,mRib);m.castShadow=true;ribbons.add(m);
+  ribbons.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge),N,0.014,5,false),mLed));
+}
+// left workspace -> meeting room
+ribbon([[495,288],[545,276],[600,300],[625,360],[650,415],[700,432],[738,395],[752,340],[790,306],[840,312],[875,355],[878,410],[848,445],[800,465],[784,505],[800,545],[845,548],[885,512],[930,505],[968,540],[1005,560],[1060,525],[1120,505],[1175,512]],{phase:0});
+// right workspace -> meeting room
+ribbon([[1762,288],[1718,300],[1700,350],[1690,405],[1655,435],[1605,430],[1565,398],[1552,345],[1575,298],[1540,272],[1490,288],[1430,318],[1402,362],[1425,405],[1475,425],[1505,465],[1495,505],[1452,532],[1400,535],[1365,512],[1342,535],[1325,585],[1280,612],[1225,600]],{phase:1.3});
+// tangle above the meeting table
+ribbon([[1175,512],[1225,478],[1262,525],[1242,585],[1182,605],[1128,568],[1070,585],[1022,625],[1010,690],[1042,748],[1105,765],[1165,722],[1188,672],[1160,638],[1110,648],[1085,700],[1120,738]],{phase:.6,amp:.12});
+ribbon([[1225,600],[1195,640],[1140,610],[1090,620],[1040,660],[1030,720],[1075,770],[1140,790],[1205,760],[1245,715],[1250,770],[1222,830]],{phase:2.1,amp:.12,y:2.6});
+// down the corridor, looping around reception
+ribbon([[1222,830],[1185,870],[1120,890],[1050,905],[995,945],[975,1010],[985,1085],[1030,1150],[1105,1182],[1180,1170],[1232,1118],[1252,1060],[1262,1040]],{phase:.9});
+ribbon([[1205,845],[1150,885],[1070,915],[1010,960],[992,1030],[1005,1100],[1055,1160],[1130,1185],[1200,1158],[1245,1095]],{phase:2.6,y:2.58,w:.34});
+
+// style + toggles
+const ui=id=>document.getElementById(id);
+let style='white',planOn=false,cut=false,tex=null;
+function applyStyle(){
+  const m=mats[style==='white'?'white':'real'];
+  mWall.color.set(m.wall);mCol.color.set(m.col);mBoard.color.set(m.board);mGlass.color.set(m.glass);
+  mGlass.opacity=style==='white'?.22:.32;
+  mFloor.color.set(planOn?0xffffff:m.floor);mFloor.map=planOn?tex:null;mFloor.needsUpdate=true;
+  scene.background=new THREE.Color(m.bg);
+  ui('s-white').setAttribute('aria-pressed',style==='white');ui('s-mat').setAttribute('aria-pressed',style!=='white');
+  ui('t-plan').setAttribute('aria-pressed',planOn);ui('t-cut').setAttribute('aria-pressed',cut);
+}
+new THREE.TextureLoader().load('plan.jpg',t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;tex=t;applyStyle();});
+ui('s-white').onclick=()=>{style='white';applyStyle();};
+ui('s-mat').onclick=()=>{style='real';applyStyle();};
+ui('t-plan').onclick=()=>{planOn=!planOn;applyStyle();};
+ui('t-rib').onclick=()=>{ribbons.visible=!ribbons.visible;ui('t-rib').setAttribute('aria-pressed',ribbons.visible);};
+ui('t-cut').onclick=()=>{cut=!cut;walls.scale.y=cut?0.4:1;applyStyle();};
+
+// views
+const views={iso:[[-20,22,26],[0,0,1]],top:[[0,30,0.52],[0,0,0.5]],eye:[[0,1.6,10.5],[0,1.4,-2]]};
+let anim=null;
+const fit=()=>camera.aspect<1?Math.min(1.7,1.0/camera.aspect):1;
+function go(k){const [p,t]=views[k];const f=k==='eye'?1:fit();anim={p0:camera.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...p).multiplyScalar(f),t1:new THREE.Vector3(...t),s:performance.now()};
+  for(const b of ['iso','top','eye'])ui('v-'+b).setAttribute('aria-pressed',b===k);}
+for(const k of ['iso','top','eye'])ui('v-'+k).onclick=()=>go(k);
+camera.position.set(...views.iso[0]);controls.target.set(...views.iso[1]);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
+  camera.fov=w<600?55:40;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();applyStyle();
+camera.position.multiplyScalar(fit());
+renderer.setAnimationLoop(now=>{
+  if(anim){let k=reduce?1:Math.min(1,(now-anim.s)/900);k=1-Math.pow(1-k,3);
+    camera.position.lerpVectors(anim.p0,anim.p1,k);controls.target.lerpVectors(anim.t0,anim.t1,k);if(k>=1)anim=null;}
+  controls.update();renderer.render(scene,camera);
+});
+}
+</script>
+</body>
+</html>
